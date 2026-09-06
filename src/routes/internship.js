@@ -14,6 +14,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const REQUIRED_FIELDS = ["firstName", "surname", "college", "email", "contact", "gender", "dob", "month"];
 
+// Browsers infer File.type/originalname from the extension, not the actual
+// bytes — a .docx renamed to .pdf reports as "application/pdf" and sails
+// through client-side checks. Only the magic-number header is trustworthy.
+const PDF_MAGIC = Buffer.from("%PDF-");
+const isPdfBuffer = (buffer) => buffer.length > PDF_MAGIC.length && buffer.subarray(0, PDF_MAGIC.length).equals(PDF_MAGIC);
+
 router.post("/", upload.single("resume"), async (req, res) => {
   const body = req.body ?? {};
   const missing = REQUIRED_FIELDS.filter((key) => !String(body[key] ?? "").trim());
@@ -23,15 +29,19 @@ router.post("/", upload.single("resume"), async (req, res) => {
 
   let resumeUrl = null;
   let resumeText = "";
+  let resumeRejected = false;
   if (req.file) {
-    try {
-      resumeUrl = await saveFile(req.file.buffer, req.file.originalname || "resume.pdf", req.file.mimetype);
-      if (req.file.mimetype === "application/pdf" || req.file.originalname?.toLowerCase().endsWith(".pdf")) {
+    if (!isPdfBuffer(req.file.buffer)) {
+      resumeRejected = true;
+      console.warn(`Rejected non-PDF resume upload (name="${req.file.originalname}", mimetype=${req.file.mimetype})`);
+    } else {
+      try {
+        resumeUrl = await saveFile(req.file.buffer, req.file.originalname || "resume.pdf", req.file.mimetype);
         const parsed = await pdfParse(req.file.buffer);
         resumeText = parsed.text || "";
+      } catch (err) {
+        console.error("Resume upload/parse failed:", err.message);
       }
-    } catch (err) {
-      console.error("Resume upload/parse failed:", err.message);
     }
   }
 
@@ -71,7 +81,7 @@ router.post("/", upload.single("resume"), async (req, res) => {
     `Mode of Internship: ${record.mode}`,
     `DOB: ${record.dob}`,
     `Preferred month: ${record.month}`,
-    `Resume: ${resumeUrl || "not provided"}`,
+    `Resume: ${resumeUrl || (resumeRejected ? "rejected — uploaded file was not a valid PDF" : "not provided")}`,
     aiResult ? `AI assessment: ${aiResult.verdict} (${aiResult.score}/100) — ${aiResult.summary}` : null,
     `Received: ${record.receivedAt}`,
   ].filter(Boolean));
