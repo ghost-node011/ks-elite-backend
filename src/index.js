@@ -35,7 +35,7 @@ app.use("/api/chat", chatRouter);
 app.use("/api/posts", postsRouter);
 app.use("/api/admin/ai", aiRouter);
 app.use("/api/admin/assistant", assistantRouter);
-app.use("/api/admin/authors", authorsRouter);
+app.use("/api/authors", authorsRouter);
 app.use("/api/parse-doc", parseDocRouter);
 app.use("/api/admin/upload-image", uploadImageRouter);
 app.use("/api/team", teamRouter);
