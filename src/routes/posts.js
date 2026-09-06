@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { requirePermission } from "../lib/adminAuth.js";
 import { invalidateSiteKnowledge } from "../lib/siteKnowledge.js";
+import { getDb } from "../lib/db.js";
 
 const store = createStore("posts");
 const router = Router();
@@ -43,7 +44,11 @@ router.get("/:slug", async (req, res) => {
   const all = await store.all();
   const post = all.find((p) => p.slug === req.params.slug && p.published);
   if (!post) return res.status(404).json({ error: "Not found" });
-  res.json(post);
+
+  const db = await getDb();
+  await db.collection("posts").updateOne({ id: post.id }, { $inc: { views: 1 } });
+
+  res.json({ ...post, views: (post.views || 0) + 1 });
 });
 
 // ── admin ────────────────────────────────────────────────────────────────
@@ -86,6 +91,7 @@ router.post("/admin", requirePermission("posts"), async (req, res) => {
     date: new Date().toISOString(),
     published: Boolean(published),
     updatedAt: new Date().toISOString(),
+    views: 0,
   });
   res.status(201).json(record);
 });
