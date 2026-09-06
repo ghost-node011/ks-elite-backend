@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
 import { requirePermission } from "../lib/adminAuth.js";
+import { classifyEnquirySource } from "../lib/enquirySource.js";
 
 const store = createStore("contacts");
 const router = Router();
@@ -13,7 +14,16 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "name, phone, and message are required." });
   }
 
-  const record = await store.append({ name: name.trim(), phone: phone.trim(), matter: matter.trim(), message: message.trim(), status: "new" });
+  const source = await classifyEnquirySource({ message: message.trim(), matter: matter.trim() });
+
+  const record = await store.append({
+    name: name.trim(),
+    phone: phone.trim(),
+    matter: matter.trim(),
+    message: message.trim(),
+    status: "new",
+    source,
+  });
 
   notifyLead(`New consultation request — ${record.name}`, [
     `Name: ${record.name}`,
