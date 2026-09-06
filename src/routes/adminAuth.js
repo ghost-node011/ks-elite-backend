@@ -9,8 +9,11 @@ import { isValidEmail } from "../lib/validators.js";
 const router = Router();
 const usersStore = createStore("adminUsers");
 
+// Long-lived base expiry plus silent refresh (below) means a session only
+// ends when the admin explicitly logs out or goes a full 30 days without
+// opening the dashboard — not on every browser close/short absence.
 function signToken(payload) {
-  return jwt.sign(payload, process.env.ADMIN_JWT_SECRET, { expiresIn: "12h" });
+  return jwt.sign(payload, process.env.ADMIN_JWT_SECRET, { expiresIn: "30d" });
 }
 
 router.post("/login", async (req, res) => {
@@ -44,6 +47,15 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", requireAdminAuth, (req, res) => {
   res.json({ email: req.admin.email, permissions: req.admin.permissions, label: req.admin.label });
+});
+
+// Re-signs a fresh token from the current (still-valid) one's claims, so the
+// dashboard can silently keep a session alive on every visit/interval instead
+// of relying on the token's raw expiry.
+router.post("/refresh", requireAdminAuth, (req, res) => {
+  const { sub, email, permissions, label } = req.admin;
+  const token = signToken({ sub, email, permissions, label });
+  res.json({ token });
 });
 
 router.get("/sections", requireSuperAdmin, (_req, res) => {
