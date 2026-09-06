@@ -47,8 +47,9 @@ function escapeHtml(str) {
 router.post("/draft", requirePermission("posts"), async (req, res) => {
   const { topic, notes = "" } = req.body ?? {};
   if (!topic?.trim()) return res.status(400).json({ error: "topic is required." });
+  if (!notes?.trim()) return res.status(400).json({ error: "A description is required so the AI has enough to write from." });
 
-  const userPrompt = `Topic: ${topic.trim()}${notes.trim() ? `\nAdditional notes / angle: ${notes.trim()}` : ""}`;
+  const userPrompt = `Topic: ${topic.trim()}\nDescription / key points to cover: ${notes.trim()}`;
 
   try {
     const raw = await llmChat(
