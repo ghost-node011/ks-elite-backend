@@ -1,15 +1,14 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { requirePermission } from "../lib/adminAuth.js";
+import { isValidEmail } from "../lib/validators.js";
 
 const store = createStore("subscribers");
 const router = Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 router.post("/", async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
-  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "A valid email is required." });
+  if (!isValidEmail(email)) return res.status(400).json({ error: "A valid email is required." });
 
   const existing = await store.all();
   if (existing.some((s) => s.email === email)) {

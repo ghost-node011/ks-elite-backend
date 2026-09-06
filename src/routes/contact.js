@@ -3,6 +3,7 @@ import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
 import { requirePermission } from "../lib/adminAuth.js";
 import { classifyEnquirySource } from "../lib/enquirySource.js";
+import { isValidPhone } from "../lib/validators.js";
 
 const store = createStore("contacts");
 const router = Router();
@@ -12,6 +13,9 @@ router.post("/", async (req, res) => {
 
   if (!name?.trim() || !phone?.trim() || !message?.trim()) {
     return res.status(400).json({ error: "name, phone, and message are required." });
+  }
+  if (!isValidPhone(phone)) {
+    return res.status(400).json({ error: "Please provide a valid phone number." });
   }
 
   const source = await classifyEnquirySource({ message: message.trim(), matter: matter.trim() });

@@ -7,6 +7,7 @@ import { requirePermission } from "../lib/adminAuth.js";
 import { saveFile } from "../lib/uploads.js";
 import { analyzeResume } from "../lib/resumeAnalysis.js";
 import { getDb } from "../lib/db.js";
+import { isValidEmail, isValidPhone } from "../lib/validators.js";
 
 const store = createStore("internships");
 const router = Router();
@@ -25,6 +26,12 @@ router.post("/", upload.single("resume"), async (req, res) => {
   const missing = REQUIRED_FIELDS.filter((key) => !String(body[key] ?? "").trim());
   if (missing.length) {
     return res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
+  }
+  if (!isValidEmail(body.email)) {
+    return res.status(400).json({ error: "Please provide a valid email address." });
+  }
+  if (!isValidPhone(body.contact)) {
+    return res.status(400).json({ error: "Please provide a valid contact number." });
   }
 
   let resumeUrl = null;

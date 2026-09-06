@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { requirePermission } from "../lib/adminAuth.js";
+import { isValidEmail, isValidPhone } from "../lib/validators.js";
 
 const store = createStore("cases");
 const router = Router();
@@ -45,6 +46,8 @@ router.post("/admin", requirePermission("cases"), async (req, res) => {
     document = null,
   } = req.body ?? {};
   if (!caseName?.trim()) return res.status(400).json({ error: "caseName is required." });
+  if (email?.trim() && !isValidEmail(email)) return res.status(400).json({ error: "Please provide a valid email address." });
+  if (clientMobile?.trim() && !isValidPhone(clientMobile)) return res.status(400).json({ error: "Please provide a valid client mobile number." });
 
   const record = await store.append({
     caseNumber: await nextCaseNumber(),
@@ -63,6 +66,9 @@ router.post("/admin", requirePermission("cases"), async (req, res) => {
 
 router.put("/admin/:id", requirePermission("cases"), async (req, res) => {
   const { caseName, lastDate, nextDate, email, clientMobile, courtName, courtNo, remark, document } = req.body ?? {};
+  if (email?.trim() && !isValidEmail(email)) return res.status(400).json({ error: "Please provide a valid email address." });
+  if (clientMobile?.trim() && !isValidPhone(clientMobile)) return res.status(400).json({ error: "Please provide a valid client mobile number." });
+
   const patch = {};
   if (caseName !== undefined) patch.caseName = caseName.trim();
   if (lastDate !== undefined) patch.lastDate = lastDate;

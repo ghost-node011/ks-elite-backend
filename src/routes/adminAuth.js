@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { createStore } from "../lib/store.js";
 import { requireAdminAuth, requireSuperAdmin } from "../lib/adminAuth.js";
 import { SECTIONS, SECTION_KEYS } from "../lib/permissions.js";
+import { isValidEmail } from "../lib/validators.js";
 
 const router = Router();
 const usersStore = createStore("adminUsers");
@@ -57,6 +58,7 @@ router.get("/users", requireSuperAdmin, async (_req, res) => {
 router.post("/users", requireSuperAdmin, async (req, res) => {
   const { email, password, permissions = [], label = "" } = req.body ?? {};
   if (!email?.trim() || !password?.trim()) return res.status(400).json({ error: "email and password are required." });
+  if (!isValidEmail(email)) return res.status(400).json({ error: "Please provide a valid email address." });
   if (password.trim().length < 8) return res.status(400).json({ error: "Password must be at least 8 characters." });
 
   const cleanPermissions = Array.isArray(permissions) ? permissions.filter((p) => SECTION_KEYS.includes(p)) : [];

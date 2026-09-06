@@ -3,6 +3,7 @@ import { llmChatRaw, LlmError } from "../lib/llm.js";
 import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
 import { getSiteKnowledge, getArticleBySlug } from "../lib/siteKnowledge.js";
+import { isValidPhone } from "../lib/validators.js";
 
 const router = Router();
 const contactStore = createStore("contacts");
@@ -70,6 +71,7 @@ async function bookAppointment(args) {
   const name = String(args?.name ?? "").trim();
   const phone = String(args?.phone ?? "").trim();
   if (!name || !phone) return { error: "Missing name or phone — ask the visitor for both before booking." };
+  if (!isValidPhone(phone)) return { error: "That doesn't look like a valid phone number — ask the visitor to confirm it." };
 
   const message = [
     args.notes ? String(args.notes).trim() : null,
